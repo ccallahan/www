@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="english">
+<head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="generator" content="Pelican" />
+        <title>Grocy - How To Configure LDAP-based Authentication</title>
+        <link rel="stylesheet" href="https://chancecallahan.com/theme/css/main.css" />
+        <link href="https://chancecallahan.com/feeds/all.atom.xml" type="application/atom+xml" rel="alternate" title="Ramblings from Helpdesk Atom Feed" />
+        <meta name="description" content="Preface: These instructions work on FreeIPA/389 Directory Server. It should work on every LDAP solution but YMMV. I had struggled for a few days..." />
+</head>
+
+<body id="index" class="home">
+        <header id="banner" class="body">
+                <h1><a href="https://chancecallahan.com/">Ramblings from Helpdesk</a></h1>
+                <nav><ul>
+                    <li class="active"><a href="https://chancecallahan.com/category/tech-tips.html">Tech Tips</a></li>
+                    <li><a href="https://chancecallahan.com/category/work.html">Work</a></li>
+                </ul></nav>
+        </header><!-- /#banner -->
+<section id="content" class="body">
+  <article>
+    <header>
+      <h1 class="entry-title">
+        <a href="https://chancecallahan.com/grocy-how-to-configure-ldap-based-authentication.html" rel="bookmark"
+           title="Permalink to Grocy - How To Configure LDAP-based Authentication">Grocy - How To Configure LDAP-based Authentication</a></h1>
+    </header>
+
+    <div class="entry-content">
+<footer class="post-info">
+        <abbr class="published" title="2022-10-02T19:00:00-04:00">
+                Published: Sun 02 October 2022
+        </abbr>
+
+        <address class="vcard author">
+                By                         <a class="url fn" href="https://chancecallahan.com/author/chance-callahan.html">Chance Callahan</a>
+        </address>
+<p>In <a href="https://chancecallahan.com/category/tech-tips.html">Tech Tips</a>.</p>
+
+</footer><!-- /.post-info -->      <p>Preface: These instructions work on FreeIPA/389 Directory Server. It should work on every LDAP solution but YMMV.</p>
+<p>I had struggled for a few days with setting up Grocy to talk with my IPA server for authentication, and I finally figured it out.</p>
+<p>First, let me show you my configuration:</p>
+<div class="highlight"><pre><span></span><code><span class="x">// Either &quot;Grocy\Middleware\DefaultAuthMiddleware&quot;, &quot;Grocy\Middleware\ReverseProxyAuthMiddleware&quot;</span>
+<span class="x">// or any class that implements Grocy\Middleware\AuthMiddleware</span>
+<span class="x">Setting(&#39;AUTH_CLASS&#39;, &#39;Grocy\Middleware\LdapAuthMiddleware&#39;);</span>
+
+<span class="x">// Options when using LdapAuthMiddleware</span>
+<span class="x">Setting(&#39;LDAP_ADDRESS&#39;, &#39;ldaps://example.com:636&#39;); // Example value &quot;ldap://vm-dc2019.local.berrnd.net&quot;</span>
+<span class="x">Setting(&#39;LDAP_BASE_DN&#39;, &#39;dc=example,dc=com&#39;); // Example value &quot;DC=local,DC=berrnd,DC=net&quot;</span>
+<span class="x">Setting(&#39;LDAP_BIND_DN&#39;, &#39;uid=svcacct_grocy,cn=users,cn=accounts,dc=example,dc=com&#39;); // Example value &quot;CN=grocy_bind_account,OU=service_accounts,DC=local,DC=berrnd,DC=net&quot;</span>
+<span class="x">Setting(&#39;LDAP_BIND_PW&#39;, &#39;passw0rd&#39;); // Password for the above account</span>
+<span class="x">Setting(&#39;LDAP_USER_FILTER&#39;, &#39;(memberOf=cn=grocy-users,cn=groups,cn=accounts,dc=example,dc=com)&#39;); // Example value &quot;(OU=grocy_users)&quot;</span>
+<span class="x">Setting(&#39;LDAP_UID_ATTR&#39;, &#39;uid&#39;); // Windows AD: &quot;sAMAccountName&quot;, OpenLDAP: &quot;uid&quot;, GLAuth: &quot;cn&quot;</span>
+</code></pre></div>
+
+<ol>
+<li>It's not documented, but Grocy supports LDAP over TLS</li>
+<li>If you want to limit access to Grocy to certain POSIX groups, that filter works <em>perfectly</em>.</li>
+<li>Most importantly, if you are getting errors, make sure the <code>php-ldap</code> module is installed. That's what tripped me up.</li>
+</ol>
+<div class="highlight"><pre><span></span><code>(EL8/9/Fedora) # dnf install php-ldap
+(Debian/Ubuntu) # apt-get install php-ldap
+(Gentoo) I don&#39;t know lol
+</code></pre></div>
+
+<p>Hopefully this is of use to someone!</p>
+<p>Also, don't forget:</p>
+<h1>DOCUMENT YOUR FUCKING FEATURES/CODE/WHATEVER</h1>
+    </div><!-- /.entry-content -->
+
+  </article>
+</section>
+        <section id="extras" class="body">
+                <div class="blogroll">
+                        <h2>links</h2>
+                        <ul>
+                            <li><a href="#">The views and opinions on this site do not reflect my employer in any way.</a></li>
+                        </ul>
+                </div><!-- /.blogroll -->
+                <div class="social">
+                        <h2>social</h2>
+                        <ul>
+                            <li><a href="https://chancecallahan.com/feeds/all.atom.xml" type="application/atom+xml" rel="alternate">atom feed</a></li>
+
+                            <li><a href="https://twitter.com/wxchance1">Twitter</a></li>
+                            <li><a href="https://github.com/ccallahan">GitHub</a></li>
+                        </ul>
+                </div><!-- /.social -->
+        </section><!-- /#extras -->
+
+        <footer id="contentinfo" class="body">
+                <address id="about" class="vcard body">
+                Proudly powered by <a href="https://getpelican.com/">Pelican</a>, which takes great advantage of <a href="https://www.python.org/">Python</a>.
+                </address><!-- /#about -->
+
+                <p>The theme is by <a href="https://www.smashingmagazine.com/2009/08/designing-a-html-5-layout-from-scratch/">Smashing Magazine</a>, thanks!</p>
+        </footer><!-- /#contentinfo -->
+
+</body>
+</html>

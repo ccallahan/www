@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="english">
+<head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="generator" content="Pelican" />
+        <title>Pyramid, Poetry, and Track Switching: Lessons Learned Migrating to Railway</title>
+        <link rel="stylesheet" href="https://chancecallahan.com/theme/css/main.css" />
+        <link href="https://chancecallahan.com/feeds/all.atom.xml" type="application/atom+xml" rel="alternate" title="Ramblings from Helpdesk Atom Feed" />
+        <meta name="description" content="I heard about Railway from a associate several months ago, and recently was invited to interview with them. In the process of doing my homework to..." />
+</head>
+
+<body id="index" class="home">
+        <header id="banner" class="body">
+                <h1><a href="https://chancecallahan.com/">Ramblings from Helpdesk</a></h1>
+                <nav><ul>
+                    <li class="active"><a href="https://chancecallahan.com/category/tech-tips.html">Tech Tips</a></li>
+                    <li><a href="https://chancecallahan.com/category/work.html">Work</a></li>
+                </ul></nav>
+        </header><!-- /#banner -->
+<section id="content" class="body">
+  <article>
+    <header>
+      <h1 class="entry-title">
+        <a href="https://chancecallahan.com/pyramid-poetry-and-track-switching-lessons-learned-migrating-to-railway.html" rel="bookmark"
+           title="Permalink to Pyramid, Poetry, and Track Switching: Lessons Learned Migrating to Railway">Pyramid, Poetry, and Track Switching: Lessons Learned Migrating to Railway</a></h1>
+    </header>
+
+    <div class="entry-content">
+<footer class="post-info">
+        <abbr class="published" title="2022-12-11T22:30:00-05:00">
+                Published: Sun 11 December 2022
+        </abbr>
+
+        <address class="vcard author">
+                By                         <a class="url fn" href="https://chancecallahan.com/author/chance-callahan.html">Chance Callahan</a>
+        </address>
+<p>In <a href="https://chancecallahan.com/category/tech-tips.html">Tech Tips</a>.</p>
+
+</footer><!-- /.post-info -->      <p>I heard about Railway from a associate several months ago, and recently was invited to interview with them. In the process of doing my homework to make sure I had an understanding of how their stack works before I go in, I decided to migrate two of my sites to their platform. These sites were written in Python using Pyramid. It's a more obscure framework, but it's what I'm learning Python on. Now, I learned a lot tonight figuring out how to migrate my code, and I'll go ahead and share what I found with you.</p>
+<h2>setup.py is out, pyproject.toml is in</h2>
+<p>Railway uses <a href="https://nixpacks.com/">Nixpacks</a> to automate the build process of the container your application will eventually live in. The <a href="https://nixpacks.com/docs/providers/python">Python Nixpack</a> supports three methods for handling dependencies and execution, we're going to use the easiest option, called <a href="https://python-poetry.org/">Poetry</a>. Poetry looks to be the future successor of setuptools, so go ahead and <a href="https://python-poetry.org/docs/#installation">install</a> it, then <code>cd</code> into your source directory and run <code>poetry init</code>. It will ask for the following bits of information:</p>
+<ul>
+<li>Name: This should be the name of the directory your code lives in (the one with the views, templates, etc. directories)</li>
+<li>Version: Whatever you want.</li>
+<li>Description: Whatever you want.</li>
+<li>Author: It will suck in whatever you have set in your Git config, you can change it to whatever you'd like though.</li>
+<li>License: Whatever suits your fancy.</li>
+<li>Compatible Python versions: Pay attention to this. You can go with the default (as long as it's <a href="https://nixpacks.com/docs/providers/python#setup">3.11 or lower</a>), just make a note of it.</li>
+</ul>
+<p>Once you have done that, it'll ask you about your dependencies. I had no issues with just typing in the dependencies from setup.py and letting it search the PyPI for results. Wrap up the wizard and it will spit out two new files: <code>pyproject.toml</code> and <code>poetry.lock</code>. Ignore the second one, and open the first. We'll need to make a few quick changes.</p>
+<ol>
+<li>Under <code>[tool.poetry]</code>, edit the <code>readme</code> setting to match your README file, whether it be plain text (<code>.txt</code>) or Markdown (<code>.md</code>).</li>
+<li>After the <code>[tool.poetry.dependencies]</code> section, add the following code block:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="k">[tool.poetry.plugins.&quot;paste.app_factory&quot;]</span>
+<span class="na">main</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;name_of_project:main&quot;</span>
+</code></pre></div>
+
+<p>Replace <code>name_of_project</code> with the name of the code folder (views, templates, etc.). Once you have done that, make sure to run <code>poetry lock</code>, commit the two new files and we'll focus on some stuff with the Railway end of things.</p>
+<h2>Choo Choo</h2>
+<p>Railway requires a couple of enviroment variables to be set in order for everything to behave, on top of whatever variables your application may require.</p>
+<ul>
+<li><code>NIXPACKS_PYTHON_VERSION</code>: This should match what you specified in the Poetry configuration wizard. If you don't set this, the Nixpack will default to Python 3.8.</li>
+<li><code>NIXPACKS_POETRY_VERSION</code>: This one tripped me up for a while. Make sure you set it to match the output of <code>poetry --version</code> on your local machine, or else it may not be able to properly read the <code>poetry.lock</code> file. By default it uses a much older version of Poetry.</li>
+<li><code>PORT</code>: This one should match your HTTP port, by default <code>6543</code>. </li>
+</ul>
+<p>Once everything has been set, you should be good to go! Happy Railroading! 🚂</p>
+    </div><!-- /.entry-content -->
+
+  </article>
+</section>
+        <section id="extras" class="body">
+                <div class="blogroll">
+                        <h2>links</h2>
+                        <ul>
+                            <li><a href="#">The views and opinions on this site do not reflect my employer in any way.</a></li>
+                        </ul>
+                </div><!-- /.blogroll -->
+                <div class="social">
+                        <h2>social</h2>
+                        <ul>
+                            <li><a href="https://chancecallahan.com/feeds/all.atom.xml" type="application/atom+xml" rel="alternate">atom feed</a></li>
+
+                            <li><a href="https://twitter.com/wxchance1">Twitter</a></li>
+                            <li><a href="https://github.com/ccallahan">GitHub</a></li>
+                        </ul>
+                </div><!-- /.social -->
+        </section><!-- /#extras -->
+
+        <footer id="contentinfo" class="body">
+                <address id="about" class="vcard body">
+                Proudly powered by <a href="https://getpelican.com/">Pelican</a>, which takes great advantage of <a href="https://www.python.org/">Python</a>.
+                </address><!-- /#about -->
+
+                <p>The theme is by <a href="https://www.smashingmagazine.com/2009/08/designing-a-html-5-layout-from-scratch/">Smashing Magazine</a>, thanks!</p>
+        </footer><!-- /#contentinfo -->
+
+</body>
+</html>

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Ramblings from Helpdesk</title><link href="https://chancecallahan.com/" rel="alternate"></link><link href="https://chancecallahan.com/feeds/all.atom.xml" rel="self"></link><id>https://chancecallahan.com/</id><updated>2022-12-11T22:30:00-05:00</updated><entry><title>Pyramid, Poetry, and Track Switching: Lessons Learned Migrating to Railway</title><link href="https://chancecallahan.com/pyramid-poetry-and-track-switching-lessons-learned-migrating-to-railway.html" rel="alternate"></link><published>2022-12-11T22:30:00-05:00</published><updated>2022-12-11T22:30:00-05:00</updated><author><name>Chance Callahan</name></author><id>tag:chancecallahan.com,2022-12-11:/pyramid-poetry-and-track-switching-lessons-learned-migrating-to-railway.html</id><summary type="html">&lt;p&gt;I heard about Railway from a associate several months ago, and recently was invited to interview with them. In the process of doing my homework to make sure I had an understanding of how their stack works before I go in, I decided to migrate two of my sites to …&lt;/p&gt;</summary><content type="html">&lt;p&gt;I heard about Railway from a associate several months ago, and recently was invited to interview with them. In the process of doing my homework to make sure I had an understanding of how their stack works before I go in, I decided to migrate two of my sites to their platform. These sites were written in Python using Pyramid. It's a more obscure framework, but it's what I'm learning Python on. Now, I learned a lot tonight figuring out how to migrate my code, and I'll go ahead and share what I found with you.&lt;/p&gt;
+&lt;h2&gt;setup.py is out, pyproject.toml is in&lt;/h2&gt;
+&lt;p&gt;Railway uses &lt;a href="https://nixpacks.com/"&gt;Nixpacks&lt;/a&gt; to automate the build process of the container your application will eventually live in. The &lt;a href="https://nixpacks.com/docs/providers/python"&gt;Python Nixpack&lt;/a&gt; supports three methods for handling dependencies and execution, we're going to use the easiest option, called &lt;a href="https://python-poetry.org/"&gt;Poetry&lt;/a&gt;. Poetry looks to be the future successor of setuptools, so go ahead and &lt;a href="https://python-poetry.org/docs/#installation"&gt;install&lt;/a&gt; it, then &lt;code&gt;cd&lt;/code&gt; into your source directory and run &lt;code&gt;poetry init&lt;/code&gt;. It will ask for the following bits of information:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Name: This should be the name of the directory your code lives in (the one with the views, templates, etc. directories)&lt;/li&gt;
+&lt;li&gt;Version: Whatever you want.&lt;/li&gt;
+&lt;li&gt;Description: Whatever you want.&lt;/li&gt;
+&lt;li&gt;Author: It will suck in whatever you have set in your Git config, you can change it to whatever you'd like though.&lt;/li&gt;
+&lt;li&gt;License: Whatever suits your fancy.&lt;/li&gt;
+&lt;li&gt;Compatible Python versions: Pay attention to this. You can go with the default (as long as it's &lt;a href="https://nixpacks.com/docs/providers/python#setup"&gt;3.11 or lower&lt;/a&gt;), just make a note of it.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Once you have done that, it'll ask you about your dependencies. I had no issues with just typing in the dependencies from setup.py and letting it search the PyPI for results. Wrap up the wizard and it will spit out two new files: &lt;code&gt;pyproject.toml&lt;/code&gt; and &lt;code&gt;poetry.lock&lt;/code&gt;. Ignore the second one, and open the first. We'll need to make a few quick changes.&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Under &lt;code&gt;[tool.poetry]&lt;/code&gt;, edit the &lt;code&gt;readme&lt;/code&gt; setting to match your README file, whether it be plain text (&lt;code&gt;.txt&lt;/code&gt;) or Markdown (&lt;code&gt;.md&lt;/code&gt;).&lt;/li&gt;
+&lt;li&gt;After the &lt;code&gt;[tool.poetry.dependencies]&lt;/code&gt; section, add the following code block:&lt;/li&gt;
+&lt;/ol&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="k"&gt;[tool.poetry.plugins.&amp;quot;paste.app_factory&amp;quot;]&lt;/span&gt;
+&lt;span class="na"&gt;main&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="s"&gt;&amp;quot;name_of_project:main&amp;quot;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Replace &lt;code&gt;name_of_project&lt;/code&gt; with the name of the code folder (views, templates, etc.). Once you have done that, make sure to run &lt;code&gt;poetry lock&lt;/code&gt;, commit the two new files and we'll focus on some stuff with the Railway end of things.&lt;/p&gt;
+&lt;h2&gt;Choo Choo&lt;/h2&gt;
+&lt;p&gt;Railway requires a couple of enviroment variables to be set in order for everything to behave, on top of whatever variables your application may require.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;NIXPACKS_PYTHON_VERSION&lt;/code&gt;: This should match what you specified in the Poetry configuration wizard. If you don't set this, the Nixpack will default to Python 3.8.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;NIXPACKS_POETRY_VERSION&lt;/code&gt;: This one tripped me up for a while. Make sure you set it to match the output of &lt;code&gt;poetry --version&lt;/code&gt; on your local machine, or else it may not be able to properly read the &lt;code&gt;poetry.lock&lt;/code&gt; file. By default it uses a much older version of Poetry.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;PORT&lt;/code&gt;: This one should match your HTTP port, by default &lt;code&gt;6543&lt;/code&gt;. &lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Once everything has been set, you should be good to go! Happy Railroading! 🚂&lt;/p&gt;</content><category term="Tech Tips"></category></entry><entry><title>Grocy - How To Configure LDAP-based Authentication</title><link href="https://chancecallahan.com/grocy-how-to-configure-ldap-based-authentication.html" rel="alternate"></link><published>2022-10-02T19:00:00-04:00</published><updated>2022-10-02T19:00:00-04:00</updated><author><name>Chance Callahan</name></author><id>tag:chancecallahan.com,2022-10-02:/grocy-how-to-configure-ldap-based-authentication.html</id><summary type="html">&lt;p&gt;Preface: These instructions work on FreeIPA/389 Directory Server. It should work on every LDAP solution but YMMV.&lt;/p&gt;
+&lt;p&gt;I had struggled for a few days with setting up Grocy to talk with my IPA server for authentication, and I finally figured it out.&lt;/p&gt;
+&lt;p&gt;First, let me show you my configuration …&lt;/p&gt;</summary><content type="html">&lt;p&gt;Preface: These instructions work on FreeIPA/389 Directory Server. It should work on every LDAP solution but YMMV.&lt;/p&gt;
+&lt;p&gt;I had struggled for a few days with setting up Grocy to talk with my IPA server for authentication, and I finally figured it out.&lt;/p&gt;
+&lt;p&gt;First, let me show you my configuration:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="x"&gt;// Either &amp;quot;Grocy\Middleware\DefaultAuthMiddleware&amp;quot;, &amp;quot;Grocy\Middleware\ReverseProxyAuthMiddleware&amp;quot;&lt;/span&gt;
+&lt;span class="x"&gt;// or any class that implements Grocy\Middleware\AuthMiddleware&lt;/span&gt;
+&lt;span class="x"&gt;Setting(&amp;#39;AUTH_CLASS&amp;#39;, &amp;#39;Grocy\Middleware\LdapAuthMiddleware&amp;#39;);&lt;/span&gt;
+
+&lt;span class="x"&gt;// Options when using LdapAuthMiddleware&lt;/span&gt;
+&lt;span class="x"&gt;Setting(&amp;#39;LDAP_ADDRESS&amp;#39;, &amp;#39;ldaps://example.com:636&amp;#39;); // Example value &amp;quot;ldap://vm-dc2019.local.berrnd.net&amp;quot;&lt;/span&gt;
+&lt;span class="x"&gt;Setting(&amp;#39;LDAP_BASE_DN&amp;#39;, &amp;#39;dc=example,dc=com&amp;#39;); // Example value &amp;quot;DC=local,DC=berrnd,DC=net&amp;quot;&lt;/span&gt;
+&lt;span class="x"&gt;Setting(&amp;#39;LDAP_BIND_DN&amp;#39;, &amp;#39;uid=svcacct_grocy,cn=users,cn=accounts,dc=example,dc=com&amp;#39;); // Example value &amp;quot;CN=grocy_bind_account,OU=service_accounts,DC=local,DC=berrnd,DC=net&amp;quot;&lt;/span&gt;
+&lt;span class="x"&gt;Setting(&amp;#39;LDAP_BIND_PW&amp;#39;, &amp;#39;passw0rd&amp;#39;); // Password for the above account&lt;/span&gt;
+&lt;span class="x"&gt;Setting(&amp;#39;LDAP_USER_FILTER&amp;#39;, &amp;#39;(memberOf=cn=grocy-users,cn=groups,cn=accounts,dc=example,dc=com)&amp;#39;); // Example value &amp;quot;(OU=grocy_users)&amp;quot;&lt;/span&gt;
+&lt;span class="x"&gt;Setting(&amp;#39;LDAP_UID_ATTR&amp;#39;, &amp;#39;uid&amp;#39;); // Windows AD: &amp;quot;sAMAccountName&amp;quot;, OpenLDAP: &amp;quot;uid&amp;quot;, GLAuth: &amp;quot;cn&amp;quot;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;ol&gt;
+&lt;li&gt;It's not documented, but Grocy supports LDAP over TLS&lt;/li&gt;
+&lt;li&gt;If you want to limit access to Grocy to certain POSIX groups, that filter works &lt;em&gt;perfectly&lt;/em&gt;.&lt;/li&gt;
+&lt;li&gt;Most importantly, if you are getting errors, make sure the &lt;code&gt;php-ldap&lt;/code&gt; module is installed. That's what tripped me up.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;(EL8/9/Fedora) # dnf install php-ldap
+(Debian/Ubuntu) # apt-get install php-ldap
+(Gentoo) I don&amp;#39;t know lol
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Hopefully this is of use to someone!&lt;/p&gt;
+&lt;p&gt;Also, don't forget:&lt;/p&gt;
+&lt;h1&gt;DOCUMENT YOUR FUCKING FEATURES/CODE/WHATEVER&lt;/h1&gt;</content><category term="Tech Tips"></category></entry><entry><title>Pyramid Web Framework - Enable Static Files for HTTPS</title><link href="https://chancecallahan.com/pyramid-web-framework-enable-static-files-for-https.html" rel="alternate"></link><published>2022-07-30T12:30:00-04:00</published><updated>2022-07-30T12:30:00-04:00</updated><author><name>Chance Callahan</name></author><id>tag:chancecallahan.com,2022-07-30:/pyramid-web-framework-enable-static-files-for-https.html</id><summary type="html">&lt;p&gt;Just something I discovered when working on a project: Pyramid tries to link content as HTTP, not HTTPS unless you have the following enabled in your .ini files:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="k"&gt;[server:main]&lt;/span&gt;
+&lt;span class="na"&gt;use&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="s"&gt;egg:waitress&lt;/span&gt;&lt;span class="c1"&gt;#main&lt;/span&gt;
+&lt;span class="na"&gt;listen&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="s"&gt;*:8080&lt;/span&gt;
+&lt;span class="na"&gt;url_scheme&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="s"&gt;https  &amp;lt;----&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Once you add that option, it all starts working the right way …&lt;/p&gt;</summary><content type="html">&lt;p&gt;Just something I discovered when working on a project: Pyramid tries to link content as HTTP, not HTTPS unless you have the following enabled in your .ini files:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="k"&gt;[server:main]&lt;/span&gt;
+&lt;span class="na"&gt;use&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="s"&gt;egg:waitress&lt;/span&gt;&lt;span class="c1"&gt;#main&lt;/span&gt;
+&lt;span class="na"&gt;listen&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="s"&gt;*:8080&lt;/span&gt;
+&lt;span class="na"&gt;url_scheme&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="s"&gt;https  &amp;lt;----&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Once you add that option, it all starts working the right way.&lt;/p&gt;</content><category term="Tech Tips"></category></entry><entry><title>IPA Survival Skills - Part 1</title><link href="https://chancecallahan.com/ipa-survival-skills-part-1.html" rel="alternate"></link><published>2022-07-29T16:00:00-04:00</published><updated>2022-07-29T16:00:00-04:00</updated><author><name>Chance Callahan</name></author><id>tag:chancecallahan.com,2022-07-29:/ipa-survival-skills-part-1.html</id><summary type="html">&lt;h1&gt;Oh $#*^&lt;/h1&gt;
+&lt;p&gt;That's the words you never want to hear your Junior IdM Administrator say at 5:00 PM. Those words mean you're going to be in for a bit of a headache, but no worries, you setup multiple replicas all in geographically diverse locations so if one IPA server goes …&lt;/p&gt;</summary><content type="html">&lt;h1&gt;Oh $#*^&lt;/h1&gt;
+&lt;p&gt;That's the words you never want to hear your Junior IdM Administrator say at 5:00 PM. Those words mean you're going to be in for a bit of a headache, but no worries, you setup multiple replicas all in geographically diverse locations so if one IPA server goes down it doesn't take the rest of your network, right?&lt;/p&gt;
+&lt;p&gt;Right?&lt;/p&gt;
+&lt;p&gt;Oh.&lt;/p&gt;
+&lt;h1&gt;IPA Survival Skills&lt;/h1&gt;
+&lt;p&gt;I'm going to walk you through the basic troubleshooting steps I use at my company to figure out what exactly is making an IPA client or server start taking on water. I write this in the hope that you can save it before it keels over, or failing that, at the very least have some good information for your support team so they can hit the ground running.&lt;/p&gt;
+&lt;h2&gt;Document Everything(TM)&lt;/h2&gt;
+&lt;p&gt;The moment you notice IPA has gone haywire, start gathering debugging information. In your /etc/sssd/sssd.conf, under all sections set &lt;code&gt;debug_level = 9&lt;/code&gt;. Once you have done that, run this following string of commands:&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;# systemctl stop sssd; rm -rf /var/log/sssd/* /var/lib/sss/{db,mc}/*; systemctl start sssd; sleep 120; sosreport -a&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;Grab that sosreport and keep it safe, that is going to be your initial vault of important information for support to use.&lt;/p&gt;
+&lt;p&gt;Also, start thinking about &lt;em&gt;what has changed&lt;/em&gt;. Have you updated recently? Did your Windows team decommssion an AD server and not send out a change notice? Has your networking team gone mad with power and started fiddling with DNS? These are all seemingly little things that have heard of knocking massive deployments offline.&lt;/p&gt;
+&lt;h2&gt;Do Some Basic Sleuthing&lt;/h2&gt;
+&lt;p&gt;Have you checked the system journal? What about &lt;code&gt;/var/log/secure&lt;/code&gt; or &lt;code&gt;/var/log/audit/audit.log&lt;/code&gt;? Did your security team make any sneaky patches (&lt;code&gt;/var/log/{dnf,yum}.log&lt;/code&gt;) and not tell you?&lt;/p&gt;
+&lt;p&gt;Try Googling some of the errors you're seeing. You would be shocked how often you're able to simply resolve a problem just by doing 10-15 minutes of research. Also, even though this may be cursed, try using Bing as well. Sometimes one search engine can pick up something the other doesn't. Plus Bing gives you free Taco Bell, so why not?&lt;/p&gt;
+&lt;h2&gt;Can't Login? Do A Kerberos Trace&lt;/h2&gt;
+&lt;p&gt;This is one of those things your support team may end up asking for, so feel free to gather it along with the sosreport. Run &lt;code&gt;KRB5_TRACE=/tmp/krb5_trace_$(hostname)_$(date +"%m-%d-%Y_%H.%M.%S").log kinit &amp;lt;user&amp;gt;@&amp;lt;DOMAIN IN ALL CAPS&amp;gt;&lt;/code&gt;. Take a look at that log file, also try Googling some of the errors, and then save it somewhere safe.&lt;/p&gt;
+&lt;h2&gt;Reboot&lt;/h2&gt;
+&lt;p&gt;This really doesn't apply to IPA servers, but if you have a IPA client that has gone haywire, just try rebooting. I've gotten so many weird looks from behind the screen when I tell fellow admins that, and it doesn't always work, but more often than not it does. Blame the Gremlins.&lt;/p&gt;</content><category term="Work"></category></entry></feed>

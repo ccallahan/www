@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="english">
+<head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="generator" content="Pelican" />
+        <title>Ramblings from Helpdesk - Work</title>
+        <link rel="stylesheet" href="https://chancecallahan.com/theme/css/main.css" />
+        <link href="https://chancecallahan.com/feeds/all.atom.xml" type="application/atom+xml" rel="alternate" title="Ramblings from Helpdesk Atom Feed" />
+</head>
+
+<body id="index" class="home">
+        <header id="banner" class="body">
+                <h1><a href="https://chancecallahan.com/">Ramblings from Helpdesk</a></h1>
+                <nav><ul>
+                    <li><a href="https://chancecallahan.com/category/tech-tips.html">Tech Tips</a></li>
+                    <li class="active"><a href="https://chancecallahan.com/category/work.html">Work</a></li>
+                </ul></nav>
+        </header><!-- /#banner -->
+
+            <aside id="featured" class="body">
+                <article>
+                    <h1 class="entry-title"><a href="https://chancecallahan.com/ipa-survival-skills-part-1.html">IPA Survival Skills - Part 1</a></h1>
+<footer class="post-info">
+        <abbr class="published" title="2022-07-29T16:00:00-04:00">
+                Published: Fri 29 July 2022
+        </abbr>
+
+        <address class="vcard author">
+                By                         <a class="url fn" href="https://chancecallahan.com/author/chance-callahan.html">Chance Callahan</a>
+        </address>
+<p>In <a href="https://chancecallahan.com/category/work.html">Work</a>.</p>
+
+</footer><!-- /.post-info --><h1>Oh $#*^</h1>
+<p>That's the words you never want to hear your Junior IdM Administrator say at 5:00 PM. Those words mean you're going to be in for a bit of a headache, but no worries, you setup multiple replicas all in geographically diverse locations so if one IPA server goes down it doesn't take the rest of your network, right?</p>
+<p>Right?</p>
+<p>Oh.</p>
+<h1>IPA Survival Skills</h1>
+<p>I'm going to walk you through the basic troubleshooting steps I use at my company to figure out what exactly is making an IPA client or server start taking on water. I write this in the hope that you can save it before it keels over, or failing that, at the very least have some good information for your support team so they can hit the ground running.</p>
+<h2>Document Everything(TM)</h2>
+<p>The moment you notice IPA has gone haywire, start gathering debugging information. In your /etc/sssd/sssd.conf, under all sections set <code>debug_level = 9</code>. Once you have done that, run this following string of commands:</p>
+<p><code># systemctl stop sssd; rm -rf /var/log/sssd/* /var/lib/sss/{db,mc}/*; systemctl start sssd; sleep 120; sosreport -a</code></p>
+<p>Grab that sosreport and keep it safe, that is going to be your initial vault of important information for support to use.</p>
+<p>Also, start thinking about <em>what has changed</em>. Have you updated recently? Did your Windows team decommssion an AD server and not send out a change notice? Has your networking team gone mad with power and started fiddling with DNS? These are all seemingly little things that have heard of knocking massive deployments offline.</p>
+<h2>Do Some Basic Sleuthing</h2>
+<p>Have you checked the system journal? What about <code>/var/log/secure</code> or <code>/var/log/audit/audit.log</code>? Did your security team make any sneaky patches (<code>/var/log/{dnf,yum}.log</code>) and not tell you?</p>
+<p>Try Googling some of the errors you're seeing. You would be shocked how often you're able to simply resolve a problem just by doing 10-15 minutes of research. Also, even though this may be cursed, try using Bing as well. Sometimes one search engine can pick up something the other doesn't. Plus Bing gives you free Taco Bell, so why not?</p>
+<h2>Can't Login? Do A Kerberos Trace</h2>
+<p>This is one of those things your support team may end up asking for, so feel free to gather it along with the sosreport. Run <code>KRB5_TRACE=/tmp/krb5_trace_$(hostname)_$(date +"%m-%d-%Y_%H.%M.%S").log kinit &lt;user&gt;@&lt;DOMAIN IN ALL CAPS&gt;</code>. Take a look at that log file, also try Googling some of the errors, and then save it somewhere safe.</p>
+<h2>Reboot</h2>
+<p>This really doesn't apply to IPA servers, but if you have a IPA client that has gone haywire, just try rebooting. I've gotten so many weird looks from behind the screen when I tell fellow admins that, and it doesn't always work, but more often than not it does. Blame the Gremlins.</p>                </article>
+            </aside><!-- /#featured -->
+        <section id="extras" class="body">
+                <div class="blogroll">
+                        <h2>links</h2>
+                        <ul>
+                            <li><a href="#">The views and opinions on this site do not reflect my employer in any way.</a></li>
+                        </ul>
+                </div><!-- /.blogroll -->
+                <div class="social">
+                        <h2>social</h2>
+                        <ul>
+                            <li><a href="https://chancecallahan.com/feeds/all.atom.xml" type="application/atom+xml" rel="alternate">atom feed</a></li>
+
+                            <li><a href="https://twitter.com/wxchance1">Twitter</a></li>
+                            <li><a href="https://github.com/ccallahan">GitHub</a></li>
+                        </ul>
+                </div><!-- /.social -->
+        </section><!-- /#extras -->
+
+        <footer id="contentinfo" class="body">
+                <address id="about" class="vcard body">
+                Proudly powered by <a href="https://getpelican.com/">Pelican</a>, which takes great advantage of <a href="https://www.python.org/">Python</a>.
+                </address><!-- /#about -->
+
+                <p>The theme is by <a href="https://www.smashingmagazine.com/2009/08/designing-a-html-5-layout-from-scratch/">Smashing Magazine</a>, thanks!</p>
+        </footer><!-- /#contentinfo -->
+
+</body>
+</html>

@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Ramblings from Helpdesk - Tech Tips</title><link href="https://chancecallahan.com/" rel="alternate"></link><link href="https://chancecallahan.com/feeds/tech-tips.atom.xml" rel="self"></link><id>https://chancecallahan.com/</id><updated>2022-12-11T22:30:00-05:00</updated><entry><title>Pyramid, Poetry, and Track Switching: Lessons Learned Migrating to Railway</title><link href="https://chancecallahan.com/pyramid-poetry-and-track-switching-lessons-learned-migrating-to-railway.html" rel="alternate"></link><published>2022-12-11T22:30:00-05:00</published><updated>2022-12-11T22:30:00-05:00</updated><author><name>Chance Callahan</name></author><id>tag:chancecallahan.com,2022-12-11:/pyramid-poetry-and-track-switching-lessons-learned-migrating-to-railway.html</id><summary type="html">&lt;p&gt;I heard about Railway from a associate several months ago, and recently was invited to interview with them. In the process of doing my homework to make sure I had an understanding of how their stack works before I go in, I decided to migrate two of my sites to …&lt;/p&gt;</summary><content type="html">&lt;p&gt;I heard about Railway from a associate several months ago, and recently was invited to interview with them. In the process of doing my homework to make sure I had an understanding of how their stack works before I go in, I decided to migrate two of my sites to their platform. These sites were written in Python using Pyramid. It's a more obscure framework, but it's what I'm learning Python on. Now, I learned a lot tonight figuring out how to migrate my code, and I'll go ahead and share what I found with you.&lt;/p&gt;
+&lt;h2&gt;setup.py is out, pyproject.toml is in&lt;/h2&gt;
+&lt;p&gt;Railway uses &lt;a href="https://nixpacks.com/"&gt;Nixpacks&lt;/a&gt; to automate the build process of the container your application will eventually live in. The &lt;a href="https://nixpacks.com/docs/providers/python"&gt;Python Nixpack&lt;/a&gt; supports three methods for handling dependencies and execution, we're going to use the easiest option, called &lt;a href="https://python-poetry.org/"&gt;Poetry&lt;/a&gt;. Poetry looks to be the future successor of setuptools, so go ahead and &lt;a href="https://python-poetry.org/docs/#installation"&gt;install&lt;/a&gt; it, then &lt;code&gt;cd&lt;/code&gt; into your source directory and run &lt;code&gt;poetry init&lt;/code&gt;. It will ask for the following bits of information:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Name: This should be the name of the directory your code lives in (the one with the views, templates, etc. directories)&lt;/li&gt;
+&lt;li&gt;Version: Whatever you want.&lt;/li&gt;
+&lt;li&gt;Description: Whatever you want.&lt;/li&gt;
+&lt;li&gt;Author: It will suck in whatever you have set in your Git config, you can change it to whatever you'd like though.&lt;/li&gt;
+&lt;li&gt;License: Whatever suits your fancy.&lt;/li&gt;
+&lt;li&gt;Compatible Python versions: Pay attention to this. You can go with the default (as long as it's &lt;a href="https://nixpacks.com/docs/providers/python#setup"&gt;3.11 or lower&lt;/a&gt;), just make a note of it.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Once you have done that, it'll ask you about your dependencies. I had no issues with just typing in the dependencies from setup.py and letting it search the PyPI for results. Wrap up the wizard and it will spit out two new files: &lt;code&gt;pyproject.toml&lt;/code&gt; and &lt;code&gt;poetry.lock&lt;/code&gt;. Ignore the second one, and open the first. We'll need to make a few quick changes.&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Under &lt;code&gt;[tool.poetry]&lt;/code&gt;, edit the &lt;code&gt;readme&lt;/code&gt; setting to match your README file, whether it be plain text (&lt;code&gt;.txt&lt;/code&gt;) or Markdown (&lt;code&gt;.md&lt;/code&gt;).&lt;/li&gt;
+&lt;li&gt;After the &lt;code&gt;[tool.poetry.dependencies]&lt;/code&gt; section, add the following code block:&lt;/li&gt;
+&lt;/ol&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="k"&gt;[tool.poetry.plugins.&amp;quot;paste.app_factory&amp;quot;]&lt;/span&gt;
+&lt;span class="na"&gt;main&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="s"&gt;&amp;quot;name_of_project:main&amp;quot;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Replace &lt;code&gt;name_of_project&lt;/code&gt; with the name of the code folder (views, templates, etc.). Once you have done that, make sure to run &lt;code&gt;poetry lock&lt;/code&gt;, commit the two new files and we'll focus on some stuff with the Railway end of things.&lt;/p&gt;
+&lt;h2&gt;Choo Choo&lt;/h2&gt;
+&lt;p&gt;Railway requires a couple of enviroment variables to be set in order for everything to behave, on top of whatever variables your application may require.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;NIXPACKS_PYTHON_VERSION&lt;/code&gt;: This should match what you specified in the Poetry configuration wizard. If you don't set this, the Nixpack will default to Python 3.8.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;NIXPACKS_POETRY_VERSION&lt;/code&gt;: This one tripped me up for a while. Make sure you set it to match the output of &lt;code&gt;poetry --version&lt;/code&gt; on your local machine, or else it may not be able to properly read the &lt;code&gt;poetry.lock&lt;/code&gt; file. By default it uses a much older version of Poetry.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;PORT&lt;/code&gt;: This one should match your HTTP port, by default &lt;code&gt;6543&lt;/code&gt;. &lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Once everything has been set, you should be good to go! Happy Railroading! 🚂&lt;/p&gt;</content><category term="Tech Tips"></category></entry><entry><title>Grocy - How To Configure LDAP-based Authentication</title><link href="https://chancecallahan.com/grocy-how-to-configure-ldap-based-authentication.html" rel="alternate"></link><published>2022-10-02T19:00:00-04:00</published><updated>2022-10-02T19:00:00-04:00</updated><author><name>Chance Callahan</name></author><id>tag:chancecallahan.com,2022-10-02:/grocy-how-to-configure-ldap-based-authentication.html</id><summary type="html">&lt;p&gt;Preface: These instructions work on FreeIPA/389 Directory Server. It should work on every LDAP solution but YMMV.&lt;/p&gt;
+&lt;p&gt;I had struggled for a few days with setting up Grocy to talk with my IPA server for authentication, and I finally figured it out.&lt;/p&gt;
+&lt;p&gt;First, let me show you my configuration …&lt;/p&gt;</summary><content type="html">&lt;p&gt;Preface: These instructions work on FreeIPA/389 Directory Server. It should work on every LDAP solution but YMMV.&lt;/p&gt;
+&lt;p&gt;I had struggled for a few days with setting up Grocy to talk with my IPA server for authentication, and I finally figured it out.&lt;/p&gt;
+&lt;p&gt;First, let me show you my configuration:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="x"&gt;// Either &amp;quot;Grocy\Middleware\DefaultAuthMiddleware&amp;quot;, &amp;quot;Grocy\Middleware\ReverseProxyAuthMiddleware&amp;quot;&lt;/span&gt;
+&lt;span class="x"&gt;// or any class that implements Grocy\Middleware\AuthMiddleware&lt;/span&gt;
+&lt;span class="x"&gt;Setting(&amp;#39;AUTH_CLASS&amp;#39;, &amp;#39;Grocy\Middleware\LdapAuthMiddleware&amp;#39;);&lt;/span&gt;
+
+&lt;span class="x"&gt;// Options when using LdapAuthMiddleware&lt;/span&gt;
+&lt;span class="x"&gt;Setting(&amp;#39;LDAP_ADDRESS&amp;#39;, &amp;#39;ldaps://example.com:636&amp;#39;); // Example value &amp;quot;ldap://vm-dc2019.local.berrnd.net&amp;quot;&lt;/span&gt;
+&lt;span class="x"&gt;Setting(&amp;#39;LDAP_BASE_DN&amp;#39;, &amp;#39;dc=example,dc=com&amp;#39;); // Example value &amp;quot;DC=local,DC=berrnd,DC=net&amp;quot;&lt;/span&gt;
+&lt;span class="x"&gt;Setting(&amp;#39;LDAP_BIND_DN&amp;#39;, &amp;#39;uid=svcacct_grocy,cn=users,cn=accounts,dc=example,dc=com&amp;#39;); // Example value &amp;quot;CN=grocy_bind_account,OU=service_accounts,DC=local,DC=berrnd,DC=net&amp;quot;&lt;/span&gt;
+&lt;span class="x"&gt;Setting(&amp;#39;LDAP_BIND_PW&amp;#39;, &amp;#39;passw0rd&amp;#39;); // Password for the above account&lt;/span&gt;
+&lt;span class="x"&gt;Setting(&amp;#39;LDAP_USER_FILTER&amp;#39;, &amp;#39;(memberOf=cn=grocy-users,cn=groups,cn=accounts,dc=example,dc=com)&amp;#39;); // Example value &amp;quot;(OU=grocy_users)&amp;quot;&lt;/span&gt;
+&lt;span class="x"&gt;Setting(&amp;#39;LDAP_UID_ATTR&amp;#39;, &amp;#39;uid&amp;#39;); // Windows AD: &amp;quot;sAMAccountName&amp;quot;, OpenLDAP: &amp;quot;uid&amp;quot;, GLAuth: &amp;quot;cn&amp;quot;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;ol&gt;
+&lt;li&gt;It's not documented, but Grocy supports LDAP over TLS&lt;/li&gt;
+&lt;li&gt;If you want to limit access to Grocy to certain POSIX groups, that filter works &lt;em&gt;perfectly&lt;/em&gt;.&lt;/li&gt;
+&lt;li&gt;Most importantly, if you are getting errors, make sure the &lt;code&gt;php-ldap&lt;/code&gt; module is installed. That's what tripped me up.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;(EL8/9/Fedora) # dnf install php-ldap
+(Debian/Ubuntu) # apt-get install php-ldap
+(Gentoo) I don&amp;#39;t know lol
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Hopefully this is of use to someone!&lt;/p&gt;
+&lt;p&gt;Also, don't forget:&lt;/p&gt;
+&lt;h1&gt;DOCUMENT YOUR FUCKING FEATURES/CODE/WHATEVER&lt;/h1&gt;</content><category term="Tech Tips"></category></entry><entry><title>Pyramid Web Framework - Enable Static Files for HTTPS</title><link href="https://chancecallahan.com/pyramid-web-framework-enable-static-files-for-https.html" rel="alternate"></link><published>2022-07-30T12:30:00-04:00</published><updated>2022-07-30T12:30:00-04:00</updated><author><name>Chance Callahan</name></author><id>tag:chancecallahan.com,2022-07-30:/pyramid-web-framework-enable-static-files-for-https.html</id><summary type="html">&lt;p&gt;Just something I discovered when working on a project: Pyramid tries to link content as HTTP, not HTTPS unless you have the following enabled in your .ini files:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="k"&gt;[server:main]&lt;/span&gt;
+&lt;span class="na"&gt;use&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="s"&gt;egg:waitress&lt;/span&gt;&lt;span class="c1"&gt;#main&lt;/span&gt;
+&lt;span class="na"&gt;listen&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="s"&gt;*:8080&lt;/span&gt;
+&lt;span class="na"&gt;url_scheme&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="s"&gt;https  &amp;lt;----&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Once you add that option, it all starts working the right way …&lt;/p&gt;</summary><content type="html">&lt;p&gt;Just something I discovered when working on a project: Pyramid tries to link content as HTTP, not HTTPS unless you have the following enabled in your .ini files:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="k"&gt;[server:main]&lt;/span&gt;
+&lt;span class="na"&gt;use&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="s"&gt;egg:waitress&lt;/span&gt;&lt;span class="c1"&gt;#main&lt;/span&gt;
+&lt;span class="na"&gt;listen&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="s"&gt;*:8080&lt;/span&gt;
+&lt;span class="na"&gt;url_scheme&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="s"&gt;https  &amp;lt;----&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Once you add that option, it all starts working the right way.&lt;/p&gt;</content><category term="Tech Tips"></category></entry></feed>
